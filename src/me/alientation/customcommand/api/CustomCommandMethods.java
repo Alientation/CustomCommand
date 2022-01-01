@@ -1,6 +1,7 @@
 package me.alientation.customcommand.api;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,9 +13,12 @@ public class CustomCommandMethods {
 	private Map<String,Method> methodMap;
 	private CustomCommandManager manager;
 	
-	public CustomCommandMethods(CustomCommandManager manager) throws Exception {
-		this.manager = manager;
+	public CustomCommandMethods() {
 		this.methodMap = new HashMap<>();
+	}
+	
+	public void registerManager(CustomCommandManager manager) {
+		this.manager = manager;
 	}
 	
 	public void registerMethods() throws Exception {
@@ -26,8 +30,10 @@ public class CustomCommandMethods {
 				
 				CustomCommand command = this.manager.getCustomCommandMap().get(annotation.commandID());
 				
-				if (command == null)
-					throw new Exception("Invalid CommandAnnotation at " + method.toString());
+				if (command == null) {
+					command = new CustomCommand(annotation.commandID(), annotation.commandName(), new ArrayList<String>(), this);
+					this.manager.mapCommand(command);
+				}
 				
 				if (method.isAnnotationPresent(PermissionAnnotation.class)) {
 					for (PermissionAnnotation perm : method.getAnnotationsByType(PermissionAnnotation.class)) {

@@ -8,8 +8,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 @Retention(RUNTIME)
-@Target({METHOD, ANNOTATION_TYPE})
-public @interface CommandAnnotation {
-	String commandID();
-	String commandName();
+@Target({ METHOD, ANNOTATION_TYPE })
+public @interface DescriptionAnnotation {
+	String description();
 }

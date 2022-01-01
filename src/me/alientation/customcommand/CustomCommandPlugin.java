@@ -3,24 +3,26 @@ package me.alientation.customcommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import me.alientation.customcommand.api.CustomCommandManager;
-import me.alientation.customcommand.api.CustomCommandMethods;
 import me.alientation.customcommand.test.TestCustomCommand;
 
-public class Main extends JavaPlugin {
+public class CustomCommandPlugin extends JavaPlugin {
 	
 	private CustomCommandManager manager;
-	private CustomCommandMethods methods;
+	private TestCustomCommand methods;
 	
-	public Main() throws Exception {
-		this.methods = new CustomCommandMethods(this.manager);
+	public CustomCommandPlugin() throws Exception {
+		this.methods = new TestCustomCommand();
 		this.manager = new CustomCommandManager(this,this.methods);
-		this.manager.registerPlugin(this);
-		this.manager.registerCommands();
 	}
 	
 	@Override
 	public void onEnable() {
-		TestCustomCommand.onEnable();
+		this.manager.registerPlugin(this);
+		try {
+			this.manager.registerCommands();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public CustomCommandManager getManager() {

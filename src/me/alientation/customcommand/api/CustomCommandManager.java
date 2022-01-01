@@ -1,5 +1,7 @@
 package me.alientation.customcommand.api;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,10 +19,12 @@ public class CustomCommandManager {
 	
 	private CustomCommandMethods methods;
 	
-	public CustomCommandManager(JavaPlugin plugin, CustomCommandMethods methods) {
+	public CustomCommandManager(JavaPlugin plugin, CustomCommandMethods methods) throws Exception {
 		this.CUSTOM_COMMAND_MAP = new HashMap<>();
 		this.plugin = plugin;
 		this.methods = methods;
+		this.methods.registerManager(this);
+		this.methods.registerMethods();
 	}
 	
 	
@@ -32,14 +36,22 @@ public class CustomCommandManager {
 	 */
 	public void mapCommand(CustomCommand command) throws Exception {
 		this.CUSTOM_COMMAND_MAP.put(command.getCommandID(),command);
-		String[] parts = command.getCommandID().split(".");
+		String[] parts = command.getCommandID().split("\\.");
+		System.out.println(command.getCommandID() + " \n" + Arrays.toString(parts));
 		String cmdPath = parts[0];
 		
 		CustomCommand temp1 = this.CUSTOM_COMMAND_MAP.get(cmdPath);
+		if (temp1 == null) {
+			temp1 = new CustomCommand(cmdPath,cmdPath,new ArrayList<String>(), this.methods);
+			this.CUSTOM_COMMAND_MAP.put(temp1.getCommandID(), temp1);
+		}
 		CustomCommand temp2;
-		for (int i = 1; i < parts.length-1; i++) {
+		for (int i = 1; i < parts.length; i++) {
 			temp2 = this.CUSTOM_COMMAND_MAP.get(cmdPath + "." + parts[i]);
-			if (temp1 == null || temp2 == null) throw new Exception("Invalid Command Path " + command.getCommandID());
+			if (temp2 == null) {
+				temp2 = new CustomCommand(cmdPath + "." + parts[i],parts[i],new ArrayList<String>(), this.methods);
+				this.CUSTOM_COMMAND_MAP.put(temp2.getCommandID(), temp2);
+			}
 			temp1.addChildCommand(temp2);
 			temp2.setParent(temp1);
 			temp1 = temp2;
@@ -53,7 +65,10 @@ public class CustomCommandManager {
 	public void registerCommands() throws Exception {
 		if (this.plugin == null)
 			throw new Exception("The plugin has not yet been registered to the manager (CustomCommand)");
-		this.CUSTOM_COMMAND_MAP.forEach((key,value) -> plugin.getCommand(key).setExecutor(value));
+		this.CUSTOM_COMMAND_MAP.forEach((key,value) -> {
+			if (value.isParent())
+				this.plugin.getCommand(key).setExecutor(value);
+			});
 		this.methods.registerMethods();
 	}
 	

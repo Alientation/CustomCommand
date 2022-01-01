@@ -1,0 +1,24 @@
+main: me.alientation.customcommand.CustomCommandPlugin
+name: CustomCommand
+version: '0.1'
+description: A simple and easy to use Custom Commands API
+author: Alientation
+commands:
+  help:
+    description: Help command
+    aliases:
+    - helpme
+
+permissions:
+  help:
+    description: Allows help command
+    default: true
+  help.list:
+    description: Allows help list command
+    default: true
+  help.add:
+    description: Allows help edit command
+    default: op
+  admin:
+    description: become admin
+    default: false
