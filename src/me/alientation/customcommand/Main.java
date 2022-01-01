@@ -11,10 +11,11 @@ public class Main extends JavaPlugin {
 	private CustomCommandManager manager;
 	private CustomCommandMethods methods;
 	
-	public Main() {
-		this.methods = new CustomCommandMethods();
+	public Main() throws Exception {
+		this.methods = new CustomCommandMethods(this.manager);
 		this.manager = new CustomCommandManager(this,this.methods);
 		this.manager.registerPlugin(this);
+		this.manager.registerCommands();
 	}
 	
 	@Override

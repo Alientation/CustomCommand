@@ -20,11 +20,11 @@ import org.bukkit.entity.Player;
  */
 public abstract class CustomCommand implements CommandExecutor, TabCompleter{
 	
-	private String commandID;		//A unique identifier for the specific command and arguments. For example the command /help list -> help.list
+	private String commandID;		//A unique identifier for the specific command. For example the command /help list -> help.list
 	private String commandName;		//The name of the command for which the player types in. For example the command /help list -> list
 	
 	private CustomCommand parent;				//The super command
-	private List<CustomCommand> children;		//The sub commands of this parent command. All sub commands inherit the same permission requirements as the parent command
+	private Set<CustomCommand> children;		//The sub commands of this parent command. All sub commands inherit the same permission requirements as the parent command
 	
 	private Set<String> permissions;
 	private Set<String> requiredPermissions;
@@ -40,12 +40,12 @@ public abstract class CustomCommand implements CommandExecutor, TabCompleter{
 	 * @param permissions	Permissions the command has
 	 * @throws Exception 
 	 */
-	public CustomCommand(String id, String commandName, Collection<String> permissions, Method method, CustomCommandMethods methods) throws Exception {
+	public CustomCommand(String id, String commandName, Collection<String> permissions, CustomCommandMethods methods) throws Exception {
 		this.commandID = id;
 		this.commandName = commandName;
 		this.permissions = new HashSet<>();
 		this.requiredPermissions = new HashSet<>();
-		this.children = new ArrayList<>();
+		this.children = new HashSet<>();
 		
 		for (String perm : permissions)
 			this.permissions.add(perm);
@@ -54,11 +54,18 @@ public abstract class CustomCommand implements CommandExecutor, TabCompleter{
 		this.methods = methods;
 	}
 	
+	/**
+	 * Temporary barebones validation for a method
+	 * 
+	 * @param method		The method to be validated
+	 * @throws Exception
+	 */
 	public void validateMethod(Method method) throws Exception {
 		if (method.getParameterCount() != 4)
 			throw new Exception("Invalid Parameter Count for method " + method.toString() + ". Required 4");
 		if (method.getParameterTypes()[0] != CommandSender.class || method.getParameterTypes()[1] != Command.class || method.getParameterTypes()[2] != String.class || method.getParameterTypes()[3] != String[].class)
 			throw new Exception("Invalid Parameter Type for method " + method.toString() + ". Required types (CommandSender, Command, String, String[])");
+		this.method = method;
 	}
 	
 	/**
@@ -69,8 +76,6 @@ public abstract class CustomCommand implements CommandExecutor, TabCompleter{
 	public void addChildCommand(CustomCommand child) {
 		this.children.add(child);
 		child.parent = this;
-		child.addPermissions(this.permissions);
-		child.addRequiredPermissions(this.requiredPermissions);
 	}
 	
 	
@@ -130,12 +135,18 @@ public abstract class CustomCommand implements CommandExecutor, TabCompleter{
 			addRequiredPermission(perm);
 	}
 	
+	public abstract void invalidCommand(CommandSender sender, Command command, String label, String[] args);
 	
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 		CustomCommand child = getChildrenByName(args[0]);
 		if (child != null)
 			return child.onCommand(sender, command, label, removeFirst(args));
+		if (this.method == null) {
+			invalidCommand(sender,command,label,args);
+			return false;
+		}
+		
 		Object[] params = {sender,command,label,args};
 		try {
 			return (boolean) this.method.invoke(this.methods,params);
@@ -196,7 +207,11 @@ public abstract class CustomCommand implements CommandExecutor, TabCompleter{
 		return this.parent;
 	}
 	
-	public List<CustomCommand> getChildren() {
+	public void setParent(CustomCommand parent) {
+		this.parent = parent;
+	}
+	
+	public Set<CustomCommand> getChildren() {
 		return this.children;
 	}
 	

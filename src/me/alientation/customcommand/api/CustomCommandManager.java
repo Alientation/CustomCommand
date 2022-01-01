@@ -28,9 +28,22 @@ public class CustomCommandManager {
 	 * Registers the command to the manager
 	 * 
 	 * @param command		The target command to be registered
+	 * @throws Exception 
 	 */
-	public void mapCommand(CustomCommand command) {
+	public void mapCommand(CustomCommand command) throws Exception {
 		this.CUSTOM_COMMAND_MAP.put(command.getCommandID(),command);
+		String[] parts = command.getCommandID().split(".");
+		String cmdPath = parts[0];
+		
+		CustomCommand temp1 = this.CUSTOM_COMMAND_MAP.get(cmdPath);
+		CustomCommand temp2;
+		for (int i = 1; i < parts.length-1; i++) {
+			temp2 = this.CUSTOM_COMMAND_MAP.get(cmdPath + "." + parts[i]);
+			if (temp1 == null || temp2 == null) throw new Exception("Invalid Command Path " + command.getCommandID());
+			temp1.addChildCommand(temp2);
+			temp2.setParent(temp1);
+			temp1 = temp2;
+		}
 	}
 	
 	/**
@@ -41,6 +54,7 @@ public class CustomCommandManager {
 		if (this.plugin == null)
 			throw new Exception("The plugin has not yet been registered to the manager (CustomCommand)");
 		this.CUSTOM_COMMAND_MAP.forEach((key,value) -> plugin.getCommand(key).setExecutor(value));
+		this.methods.registerMethods();
 	}
 	
 	/**
