@@ -1,0 +1,5 @@
+main: me.alientation.customcommand.Main
+name: CustomCommand
+version: '0.1'
+description: A simple and easy to use Custom Commands API
+author: Alientation
