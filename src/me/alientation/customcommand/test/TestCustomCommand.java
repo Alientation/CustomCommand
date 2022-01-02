@@ -11,14 +11,17 @@ import me.alientation.customcommand.annotation.CommandAnnotation;
 import me.alientation.customcommand.annotation.DescriptionAnnotation;
 import me.alientation.customcommand.annotation.PermissionAnnotation;
 import me.alientation.customcommand.annotation.TabAnnotation;
-import me.alientation.customcommand.api.CustomCommandMethods;
+import me.alientation.customcommand.api.CustomCommandAPI;
 
-public class TestCustomCommand extends CustomCommandMethods{
-	
+/**
+ * A test class to show the functionality of the api
+ *
+ */
+public class TestCustomCommand extends CustomCommandAPI{
 	
 	@CommandAnnotation(commandID = "help", commandName = "help")
-	@DescriptionAnnotation(description = "Help Command")
-	@AliasesAnnotation(aliases = "helpme")
+	@DescriptionAnnotation(value = "Help Command")
+	@AliasesAnnotation(value = "helpme")
 	@PermissionAnnotation(permission = "help", required = false)
 	public boolean helpCommand(CommandSender sender, Command cmd, String label, String[] args) {
 		sender.sendMessage("No help for you loser");
@@ -44,7 +47,7 @@ public class TestCustomCommand extends CustomCommandMethods{
 	
 	
 	@CommandAnnotation(commandID = "help.hello", commandName = "hello")
-	@AliasesAnnotation(aliases = "hi")
+	@AliasesAnnotation(value = "hi")
 	@PermissionAnnotation(permission = "help",required=false)
 	public boolean helpHelloCommand(CommandSender sender, Command cmd, String label, String[] args) {
 		sender.sendMessage("hi");

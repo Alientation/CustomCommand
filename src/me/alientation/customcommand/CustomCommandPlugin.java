@@ -5,11 +5,14 @@ import org.bukkit.plugin.java.JavaPlugin;
 import me.alientation.customcommand.api.CustomCommandManager;
 import me.alientation.customcommand.test.TestCustomCommand;
 
+/**
+ * A test plugin class to show the functionality of this api
+ */
 public class CustomCommandPlugin extends JavaPlugin {
 	
 	private CustomCommandManager manager;
 	
-	public CustomCommandPlugin() throws Exception {
+	public CustomCommandPlugin() {
 		this.manager = new CustomCommandManager(this);
 	}
 	

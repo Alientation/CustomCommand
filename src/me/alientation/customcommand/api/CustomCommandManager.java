@@ -29,7 +29,7 @@ public class CustomCommandManager {
 	 * @param methods		A reference to the class that contains the methods the commands uses
 	 * @throws Exception
 	 */
-	public CustomCommandManager(JavaPlugin plugin) throws Exception {
+	public CustomCommandManager(JavaPlugin plugin) {
 		this.CUSTOM_COMMAND_MAP = new HashMap<>();
 		this.plugin = plugin;
 	}
@@ -72,7 +72,7 @@ public class CustomCommandManager {
 	 * @param commands	An object to the class that contains the command methods
 	 * @throws Exception 
 	 */
-	public void loadCommand(CustomCommandMethods commands) {
+	public void loadCommand(CustomCommandAPI commands) {
 		commands.registerManager(this);
 		commands.registerMethods();
 	}

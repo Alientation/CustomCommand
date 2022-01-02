@@ -17,13 +17,18 @@ import me.alientation.customcommand.annotation.PermissionAnnotation;
 import me.alientation.customcommand.annotation.TabAnnotation;
 import me.alientation.customcommand.annotation.UsageAnnotation;
 
-public class CustomCommandMethods {
+public class CustomCommandAPI {
 	
 	private Map<String,Method> methodMap;
 	private CustomCommandManager manager;
 	
-	public CustomCommandMethods() {
+	public CustomCommandAPI() {
 		this.methodMap = new HashMap<>();
+	}
+	
+	public CustomCommandAPI(CustomCommandManager manager) {
+		this.methodMap = new HashMap<>();
+		registerManager(manager);
 	}
 	
 	public void registerManager(CustomCommandManager manager) {
@@ -44,9 +49,9 @@ public class CustomCommandMethods {
 				
 				List<String> commandAliases = new ArrayList<>();
 				for (int i = 0; i < aliasesAnnotations.length; i++)
-					commandAliases.add(aliasesAnnotations[i].aliases());
+					commandAliases.add(aliasesAnnotations[i].value());
 				
-				String commandDescription = descriptionAnnotation != null ? descriptionAnnotation.description() : null;
+				String commandDescription = descriptionAnnotation != null ? descriptionAnnotation.value() : null;
 				
 				List<String> commandPermissions = new ArrayList<>();
 				List<Boolean> commandRequiredPermissions = new ArrayList<>();
@@ -55,7 +60,7 @@ public class CustomCommandMethods {
 					commandRequiredPermissions.add(permissionAnnotations[i].required());
 				}
 				
-				String commandUsage = usageAnnotation != null ? usageAnnotation.usage() : null;
+				String commandUsage = usageAnnotation != null ? usageAnnotation.value() : null;
 				
 				
 				this.methodMap.put("@commandAnnotation@" + commandAnnotation.commandID(), method);

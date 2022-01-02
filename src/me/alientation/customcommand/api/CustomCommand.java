@@ -33,8 +33,8 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	
 	private Method commandMethod;
 	private Method tabMethod;
-	private CustomCommandMethods commandMethodContainer;
-	private CustomCommandMethods tabMethodContainer;
+	private CustomCommandAPI commandMethodContainer;
+	private CustomCommandAPI tabMethodContainer;
 	
 	private BaseCommand baseCommand;
 	
@@ -76,7 +76,6 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 		this.commandAliases= aliases;
 	}
 	
-	
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 		if (!hasPermissions(sender)) {
@@ -92,9 +91,21 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 			return false;
 		}
 		
-		//TODO: Figure out a way to conform the onCommand params into the user defined method
+		/*
+		 * TODO: Add parameter flag annotations so that the user can greater customize the parameters that get accepted
+		 */
+		//Object[] params = {sender,command,label,args};
+		Object[] params = new Object[this.commandMethod.getParameterCount()];
+		int paramsIndex = 0;
+		for (Class<?> c : this.commandMethod.getParameterTypes()) {
+			if (c == CommandSender.class)	params[paramsIndex] = sender;
+			else if (c == Command.class) 	params[paramsIndex] = command;
+			else if (c == String.class) 	params[paramsIndex] = label;
+			else if (c == String[].class) 	params[paramsIndex] = args;
+			else 							params[paramsIndex] = null;
+			paramsIndex++;
+		}
 		
-		Object[] params = {sender,command,label,args};
 		try {
 			return (boolean) this.commandMethod.invoke(this.commandMethodContainer,params);
 		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | SecurityException e) {
@@ -107,8 +118,17 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	@Override
 	public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
 		if (this.tabMethod != null) {
+			Object[] params = new Object[this.tabMethod.getParameterCount()];
+			int paramsIndex = 0;
+			for (Class<?> c : this.tabMethod.getParameterTypes()) {
+				if (c == CommandSender.class)	params[paramsIndex] = sender;
+				else if (c == Command.class) 	params[paramsIndex] = command;
+				else if (c == String.class) 	params[paramsIndex] = label;
+				else if (c == String[].class) 	params[paramsIndex] = args;
+				else 							params[paramsIndex] = null;
+				paramsIndex++;
+			}
 			try {
-				Object[] params = {sender,command,label,args};
 				return (List<String>) this.tabMethod.invoke(this.tabMethodContainer,params);
 			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | SecurityException e) {
 				e.printStackTrace();
@@ -177,7 +197,7 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	 * @param method		The method to be validated
 	 * @throws Exception
 	 */
-	public void validateCommandMethod(Method method, CustomCommandMethods methodObject) throws InvalidMethodException {
+	public void validateCommandMethod(Method method, CustomCommandAPI methodObject) throws InvalidMethodException {
 		if (method.getParameterCount() != 4)
 			throw new InvalidMethodException("Invalid Parameter Count for method " + method.toString() + ". Required 4");
 		if (method.getParameterTypes()[0] != CommandSender.class || method.getParameterTypes()[1] != Command.class || method.getParameterTypes()[2] != String.class || method.getParameterTypes()[3] != String[].class)
@@ -195,7 +215,7 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	 * @param method		The method to be validated
 	 * @throws Exception
 	 */
-	public void validateTabMethod(Method method, CustomCommandMethods methodObject) throws InvalidMethodException {
+	public void validateTabMethod(Method method, CustomCommandAPI methodObject) throws InvalidMethodException {
 		if (method.getParameterCount() != 4)
 			throw new InvalidMethodException("Invalid Parameter Count for method " + method.toString() + ". Required 4");
 		if (method.getParameterTypes()[0] != CommandSender.class || method.getParameterTypes()[1] != Command.class || method.getParameterTypes()[2] != String.class || method.getParameterTypes()[3] != String[].class)
