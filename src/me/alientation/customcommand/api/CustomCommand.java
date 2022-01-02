@@ -13,6 +13,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 
+import me.alientation.customcommand.exception.InvalidMethodException;
+
 /**
  * Class for storing information regarding a CustomCommand
  *
@@ -29,8 +31,10 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	private Set<String> permissions;
 	private Set<String> requiredPermissions;
 	
-	private Method method;
-	private CustomCommandMethods methods;
+	private Method commandMethod;
+	private Method tabMethod;
+	private CustomCommandMethods commandMethodContainer;
+	private CustomCommandMethods tabMethodContainer;
 	
 	private BaseCommand baseCommand;
 	
@@ -43,10 +47,9 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	 * @param id			String identifier of the command
 	 * @param commandName	Name of the command
 	 * @param permissions	Permissions the command has
-	 * @param methods		A reference to the object that stores the method this command uses
 	 * @throws Exception 
 	 */
-	public CustomCommand(String id, String commandName, Collection<String> permissions, CustomCommandMethods methods) throws Exception {
+	public CustomCommand(String id, String commandName, Collection<String> permissions) {
 		this.commandID = id;
 		this.commandName = commandName;
 		this.permissions = new HashSet<>();
@@ -56,7 +59,6 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 		for (String perm : permissions)
 			this.permissions.add(perm);
 		
-		this.methods = methods;
 		this.commandAliases = new ArrayList<String>();
 	}
 	
@@ -67,11 +69,10 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	 * @param commandName	Name of the command
 	 * @param aliases		Aliases the command has
 	 * @param permissions	Permissions the command has
-	 * @param methods		A reference to the object that stores the method this command uses
 	 * @throws Exception
 	 */
-	public CustomCommand(String id, String commandName, List<String> aliases, Collection<String> permissions, CustomCommandMethods methods) throws Exception {
-		this(id,commandName,permissions,methods);
+	public CustomCommand(String id, String commandName, List<String> aliases, Collection<String> permissions) {
+		this(id,commandName,permissions);
 		this.commandAliases= aliases;
 	}
 	
@@ -86,7 +87,7 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 		CustomCommand child = args.length > 0 ? getChildrenByName(args[0]) : null;
 		if (child != null)
 			return child.onCommand(sender, command, label, removeFirst(args));
-		if (this.method == null) {
+		if (this.commandMethod == null) {
 			invalidCommand(sender,command,label,args);
 			return false;
 		}
@@ -95,23 +96,31 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 		
 		Object[] params = {sender,command,label,args};
 		try {
-			return (boolean) this.method.invoke(this.methods,params);
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
-		} catch (SecurityException e) {
+			return (boolean) this.commandMethod.invoke(this.commandMethodContainer,params);
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | SecurityException e) {
 			e.printStackTrace();
 		}
 		return false;
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
-		if (args.length > 1)
+		if (this.tabMethod != null) {
+			try {
+				Object[] params = {sender,command,label,args};
+				return (List<String>) this.tabMethod.invoke(this.tabMethodContainer,params);
+			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | SecurityException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		if (args.length > 1) {
+			CustomCommand child = getChildrenByName(args[0]);
+			if (child == null)
+				return null;
 			return getChildrenByName(args[0]).onTabComplete(sender, command, label, removeFirst(args));
+		}
 		List<String> possibleCompletions = new ArrayList<>();
 		for (CustomCommand commands : this.children) {
 			if (commands.hasPermissions(sender) && commands.commandName.indexOf(args[0]) == 0)
@@ -168,12 +177,33 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	 * @param method		The method to be validated
 	 * @throws Exception
 	 */
-	public void validateMethod(Method method) throws Exception {
+	public void validateCommandMethod(Method method, CustomCommandMethods methodObject) throws InvalidMethodException {
 		if (method.getParameterCount() != 4)
-			throw new Exception("Invalid Parameter Count for method " + method.toString() + ". Required 4");
+			throw new InvalidMethodException("Invalid Parameter Count for method " + method.toString() + ". Required 4");
 		if (method.getParameterTypes()[0] != CommandSender.class || method.getParameterTypes()[1] != Command.class || method.getParameterTypes()[2] != String.class || method.getParameterTypes()[3] != String[].class)
-			throw new Exception("Invalid Parameter Type for method " + method.toString() + ". Required types (CommandSender, Command, String, String[])");
-		this.method = method;
+			throw new InvalidMethodException("Invalid Parameter Type for method " + method.toString() + ". Required types (CommandSender, Command, String, String[])");
+		if (methodObject.getMethodMap().get("@commandAnnotation@" + this.getCommandID()) != method)
+			throw new InvalidMethodException("Method is not contained within the supplied methodObject > " + method.toString());
+		this.commandMethod = method;
+		this.commandMethodContainer = methodObject;
+	}
+	
+	
+	/**
+	 * Temporary barebones validation for a method
+	 * 
+	 * @param method		The method to be validated
+	 * @throws Exception
+	 */
+	public void validateTabMethod(Method method, CustomCommandMethods methodObject) throws InvalidMethodException {
+		if (method.getParameterCount() != 4)
+			throw new InvalidMethodException("Invalid Parameter Count for method " + method.toString() + ". Required 4");
+		if (method.getParameterTypes()[0] != CommandSender.class || method.getParameterTypes()[1] != Command.class || method.getParameterTypes()[2] != String.class || method.getParameterTypes()[3] != String[].class)
+			throw new InvalidMethodException("Invalid Parameter Type for method " + method.toString() + ". Required types (CommandSender, Command, String, String[])");
+		if (methodObject.getMethodMap().get("@tabAnnotation@" + this.getCommandID()) != method)
+			throw new InvalidMethodException("Method is not contained within the supplied methodObject > " + method.toString());
+		this.tabMethod = method;
+		this.tabMethodContainer = methodObject;
 	}
 	
 	
@@ -185,14 +215,13 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	 * @return Whether the command sender has permission to use the command
 	 */
 	public boolean hasPermissions(CommandSender sender) {
-		boolean hasPermissions = false;
-		for (String perm : this.permissions) {
-			if (!sender.isPermissionSet(perm) && this.requiredPermissions.contains(perm))
+		for (String reqPerm : this.requiredPermissions)
+			if (!sender.isPermissionSet(reqPerm))
 				return false;
+		for (String perm : this.permissions)
 			if (sender.isPermissionSet(perm))
-				hasPermissions = true;
-		}
-		return hasPermissions;
+				return true;
+		return false;
 	}
 	
 	/**
@@ -330,7 +359,7 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	}
 	
 	public boolean hasMethod() {
-		return this.method != null;
+		return this.commandMethod != null;
 	}
 	
 	@Override

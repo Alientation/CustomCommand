@@ -1,5 +1,8 @@
 package me.alientation.customcommand.test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 
@@ -7,6 +10,7 @@ import me.alientation.customcommand.annotation.AliasesAnnotation;
 import me.alientation.customcommand.annotation.CommandAnnotation;
 import me.alientation.customcommand.annotation.DescriptionAnnotation;
 import me.alientation.customcommand.annotation.PermissionAnnotation;
+import me.alientation.customcommand.annotation.TabAnnotation;
 import me.alientation.customcommand.api.CustomCommandMethods;
 
 public class TestCustomCommand extends CustomCommandMethods{
@@ -30,7 +34,7 @@ public class TestCustomCommand extends CustomCommandMethods{
 	}
 	
 	
-	@CommandAnnotation(commandID = "help.add", commandName = "add")
+	@CommandAnnotation(commandID = "help.list.add", commandName = "add")
 	@PermissionAnnotation(permission = "help.add", required = true)
 	@PermissionAnnotation(permission = "admin", required = false)
 	public boolean helpAddCommand(CommandSender sender, Command cmd, String label, String[] args) {
@@ -45,5 +49,13 @@ public class TestCustomCommand extends CustomCommandMethods{
 	public boolean helpHelloCommand(CommandSender sender, Command cmd, String label, String[] args) {
 		sender.sendMessage("hi");
 		return true;
+	}
+	
+	
+	@TabAnnotation(commandID = "help.hello", commandName = "hello")
+	public List<String> helpHelloTab(CommandSender sender, Command cmd, String label, String[] args) {
+		List<String> list = new ArrayList<String>();
+		list.add("SIRI");
+		return list;
 	}
 }

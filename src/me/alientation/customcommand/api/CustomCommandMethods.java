@@ -14,6 +14,7 @@ import me.alientation.customcommand.annotation.AliasesAnnotation;
 import me.alientation.customcommand.annotation.CommandAnnotation;
 import me.alientation.customcommand.annotation.DescriptionAnnotation;
 import me.alientation.customcommand.annotation.PermissionAnnotation;
+import me.alientation.customcommand.annotation.TabAnnotation;
 import me.alientation.customcommand.annotation.UsageAnnotation;
 
 public class CustomCommandMethods {
@@ -29,7 +30,7 @@ public class CustomCommandMethods {
 		this.manager = manager;
 	}
 	
-	public void registerMethods() throws Exception {
+	public void registerMethods() {
 		for (Method method : this.getClass().getDeclaredMethods()) {
 			if (method.isAnnotationPresent(CommandAnnotation.class)) {
 				CommandAnnotation commandAnnotation = method.getAnnotation(CommandAnnotation.class);
@@ -37,9 +38,6 @@ public class CustomCommandMethods {
 				DescriptionAnnotation descriptionAnnotation = method.getAnnotation(DescriptionAnnotation.class);
 				PermissionAnnotation[] permissionAnnotations = method.getAnnotationsByType(PermissionAnnotation.class);
 				UsageAnnotation usageAnnotation = method.getAnnotation(UsageAnnotation.class);
-				
-				
-				//method.setAccessible(true); //might be unnecessary idk
 				
 				String commandName = commandAnnotation != null ? commandAnnotation.commandName() : null;
 				String commandID = commandAnnotation != null ? commandAnnotation.commandID() : null;
@@ -60,14 +58,9 @@ public class CustomCommandMethods {
 				String commandUsage = usageAnnotation != null ? usageAnnotation.usage() : null;
 				
 				
-				this.methodMap.put(commandAnnotation.commandID(), method);
+				this.methodMap.put("@commandAnnotation@" + commandAnnotation.commandID(), method);
 				
-				CustomCommand command = this.manager.getCustomCommandMap().get(commandID);
-				
-				if (command == null) {
-					command = new CustomCommand(commandID, commandName, new ArrayList<String>(), this);
-					this.manager.mapCommand(command);
-				}
+				CustomCommand command = this.getCommand(commandID, commandName);
 				
 				command.addAliases(commandAliases);
 				
@@ -75,18 +68,40 @@ public class CustomCommandMethods {
 					command.addPermission(commandPermissions.get(i),commandRequiredPermissions.get(i));
 				
 				if (command.isParent()) {
-					final Field bukkitCommandMap = Bukkit.getServer().getClass().getDeclaredField("commandMap");
-					bukkitCommandMap.setAccessible(true);
-					
-					CommandMap commandMap = ((CommandMap) bukkitCommandMap.get(Bukkit.getServer()));
-					commandMap.register(command.getCommandName(), new BaseCommand(commandName,commandDescription, commandUsage, commandAliases, command));
-					if (this.manager.getPlugin().getCommand(commandName) != null) {
-						this.manager.getPlugin().getCommand(commandName).unregister(commandMap);
+					Field bukkitCommandMap;
+					try {
+						bukkitCommandMap = Bukkit.getServer().getClass().getDeclaredField("commandMap");
+						bukkitCommandMap.setAccessible(true);
+						CommandMap commandMap = ((CommandMap) bukkitCommandMap.get(Bukkit.getServer()));
+						commandMap.register(command.getCommandName(), new BaseCommand(commandName,commandDescription, commandUsage, commandAliases, command));
+						if (this.manager.getPlugin().getCommand(commandName) != null) {
+							this.manager.getPlugin().getCommand(commandName).unregister(commandMap);
+						}
+					} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+						e.printStackTrace();
 					}
 				}
 				
-				command.validateMethod(method);
+				command.validateCommandMethod(method,this);
+			} else if (method.isAnnotationPresent(TabAnnotation.class)) {
+				TabAnnotation tabAnnotation = method.getAnnotation(TabAnnotation.class);
+				this.methodMap.put("@tabAnnotation@" + tabAnnotation.commandID(), method);
+				CustomCommand command = this.getCommand(tabAnnotation.commandID(), tabAnnotation.commandName());
+				command.validateTabMethod(method, this);
 			}
 		}
+	}
+	
+	private CustomCommand getCommand(String commandID, String commandName) {
+		CustomCommand command = this.manager.getCustomCommandMap().get(commandID);
+		if (command == null) {
+			command = new CustomCommand(commandID,commandName,new ArrayList<String>());
+			this.manager.mapCommand(command);
+		}
+		return command;
+	}
+	
+	public Map<String,Method> getMethodMap() {
+		return this.methodMap;
 	}
 }
