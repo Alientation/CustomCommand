@@ -1,10 +1,13 @@
 package me.alientation.customcommand.api;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
+import org.bukkit.command.CommandMap;
 import org.bukkit.plugin.java.JavaPlugin;
 
 
@@ -19,6 +22,13 @@ public class CustomCommandManager {
 	
 	private CustomCommandMethods methods;
 	
+	/**
+	 * Constructor that initiates Java Reflection to map each command to a method
+	 * 
+	 * @param plugin		Plugin	
+	 * @param methods		A reference to the class that contains the methods the commands uses
+	 * @throws Exception
+	 */
 	public CustomCommandManager(JavaPlugin plugin, CustomCommandMethods methods) throws Exception {
 		this.CUSTOM_COMMAND_MAP = new HashMap<>();
 		this.plugin = plugin;
@@ -59,24 +69,37 @@ public class CustomCommandManager {
 	}
 	
 	/**
-	 * Registers commands to the plugin
+	 * Sets up command executors for the plugin
+	 * 
 	 * @throws Exception when the plugin has not been registered to the manager
 	 */
 	public void registerCommands() throws Exception {
 		if (this.plugin == null)
 			throw new Exception("The plugin has not yet been registered to the manager (CustomCommand)");
-		this.CUSTOM_COMMAND_MAP.forEach((key,value) -> {
-			if (value.isParent())
-				this.plugin.getCommand(key).setExecutor(value);
-			});
+		
 		this.methods.registerMethods();
+		this.CUSTOM_COMMAND_MAP.forEach((key,value) -> {
+			//System.out.println("Command -> " + value.getCommandID() + "\tParent -> " + value.getParent() + "\tChildren -> " + value.getChildren().size());
+			if (value.isParent()) {
+				System.out.println("COMMAND >>> " + value.getCommandName());
+				Field bukkitCommandMap;
+				try {
+					bukkitCommandMap = Bukkit.getServer().getClass().getDeclaredField("commandMap");
+					bukkitCommandMap.setAccessible(true);
+					CommandMap commandMap = ((CommandMap) bukkitCommandMap.get(Bukkit.getServer()));
+					if (commandMap.getCommand(key) instanceof BaseCommand) {
+						((BaseCommand) commandMap.getCommand(key)).setExecutor(value);
+					} else {
+						System.out.println(key + " is an invalid command as it isn't an instance of BaseCommand");
+					}
+				} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+					e.printStackTrace();
+				}
+			}
+		});
 	}
 	
-	/**
-	 * Registers the plugin to the manager
-	 * 
-	 * @param pl	The JavaPlugin using the manager
-	 */
+	
 	public void registerPlugin(JavaPlugin pl) {
 		this.plugin = pl;
 	}
@@ -88,5 +111,9 @@ public class CustomCommandManager {
 	
 	public CustomCommandMethods getMethods() {
 		return this.methods;
+	}
+	
+	public JavaPlugin getPlugin() {
+		return this.plugin;
 	}
 }

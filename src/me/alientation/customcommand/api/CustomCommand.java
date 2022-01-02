@@ -21,6 +21,7 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	
 	private String commandID;		//A unique identifier for the specific command. For example the command /help list -> help.list
 	private String commandName;		//The name of the command for which the player types in. For example the command /help list -> list
+	private List<String> commandAliases;
 	
 	private CustomCommand parent;				//The super command
 	private Set<CustomCommand> children;		//The sub commands of this parent command. All sub commands inherit the same permission requirements as the parent command
@@ -31,12 +32,18 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	private Method method;
 	private CustomCommandMethods methods;
 	
+	private BaseCommand baseCommand;
+	
+	
+	private boolean showAliasesInTabCompletion = true;
+	
 	/**
 	 * Constructor that loads information regarding a specific command
 	 * 
 	 * @param id			String identifier of the command
 	 * @param commandName	Name of the command
 	 * @param permissions	Permissions the command has
+	 * @param methods		A reference to the object that stores the method this command uses
 	 * @throws Exception 
 	 */
 	public CustomCommand(String id, String commandName, Collection<String> permissions, CustomCommandMethods methods) throws Exception {
@@ -50,107 +57,24 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 			this.permissions.add(perm);
 		
 		this.methods = methods;
+		this.commandAliases = new ArrayList<String>();
 	}
 	
 	/**
-	 * Temporary barebones validation for a method
+	 * Constructor that loads in additional information regarding a specific command
 	 * 
-	 * @param method		The method to be validated
+	 * @param id			String identifier of the command
+	 * @param commandName	Name of the command
+	 * @param aliases		Aliases the command has
+	 * @param permissions	Permissions the command has
+	 * @param methods		A reference to the object that stores the method this command uses
 	 * @throws Exception
 	 */
-	public void validateMethod(Method method) throws Exception {
-		if (method.getParameterCount() != 4)
-			throw new Exception("Invalid Parameter Count for method " + method.toString() + ". Required 4");
-		if (method.getParameterTypes()[0] != CommandSender.class || method.getParameterTypes()[1] != Command.class || method.getParameterTypes()[2] != String.class || method.getParameterTypes()[3] != String[].class)
-			throw new Exception("Invalid Parameter Type for method " + method.toString() + ". Required types (CommandSender, Command, String, String[])");
-		this.method = method;
+	public CustomCommand(String id, String commandName, List<String> aliases, Collection<String> permissions, CustomCommandMethods methods) throws Exception {
+		this(id,commandName,permissions,methods);
+		this.commandAliases= aliases;
 	}
 	
-	/**
-	 * Adds a child command and updates permissions of that child
-	 * 
-	 * @param child	The command to be added as a children
-	 */
-	public void addChildCommand(CustomCommand child) {
-		this.children.add(child);
-		child.parent = this;
-	}
-	
-	
-	/**
-	 * Check if a command sender has permission to use the command
-	 * 
-	 * @param sender	The command sender that used the command
-	 * 
-	 * @return Whether the command sender has permission to use the command
-	 */
-	public boolean hasPermissions(CommandSender sender) {
-		boolean hasPermissions = false;
-		for (String perm : this.permissions) {
-			if (!sender.isPermissionSet(perm) && this.requiredPermissions.contains(perm))
-				return false;
-			if (sender.isPermissionSet(perm))
-				hasPermissions = true;
-		}
-		/*
-		if (hasPermissions == false)
-			System.out.println(player.getName() + " has no permissions to the command " + this.toString()); */
-		return hasPermissions;
-	}
-	
-	/**
-	 * Add a single permission
-	 * 
-	 * @param permission	The permission to be added to this command
-	 */
-	public void addPermission(String permission) {
-		this.permissions.add(permission);
-	}
-	
-	/**
-	 * Add a single required permission to this command
-	 * 
-	 * @param permission	The required permission to be added
-	 */
-	public void addRequiredPermission(String permission) {
-		this.requiredPermissions.add(permission);
-	}
-	
-	/**
-	 * Adds permissions to the command
-	 * 
-	 * @param permissions	The permissions to be added
-	 */
-	public void addPermissions(Collection<String> permissions) {
-		for (String perm : permissions)
-			addPermission(perm);
-	}
-	
-	/**
-	 * Adds required permissions to the command
-	 * 
-	 * @param permissions	The required permissions to be added
-	 */
-	public void addRequiredPermissions(Collection<String> permissions) {
-		for (String perm : permissions)
-			addRequiredPermission(perm);
-	}
-	
-	/**
-	 * Called whenever a command issued by a sender does not exist, likely meaning they had incorrect arguments
-	 * 
-	 * @param sender	Issuer of the command
-	 * @param command	Command that was issued
-	 * @param label		Text that was typed
-	 * @param args		Arguments passed to the command
-	 */
-	public void invalidCommand(CommandSender sender, Command command, String label, String[] args) {
-		
-	}
-	
-	public void invalidPermissions(CommandSender sender, Command command, String label, String[] args) {
-		
-	}
 	
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -189,18 +113,161 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 		if (args.length > 1)
 			return getChildrenByName(args[0]).onTabComplete(sender, command, label, removeFirst(args));
 		List<String> possibleCompletions = new ArrayList<>();
-		for (CustomCommand commands : this.children)
+		for (CustomCommand commands : this.children) {
 			if (commands.hasPermissions(sender) && commands.commandName.indexOf(args[0]) == 0)
 				possibleCompletions.add(commands.commandName);
+			if (showAliasesInTabCompletion)
+				for (String s : commands.commandAliases)
+					if (s.indexOf(args[0]) == 0)
+						possibleCompletions.add(s);
+		}
 		return possibleCompletions;
 	}
 	
+	/**
+	 * Called whenever a command issued by a sender does not exist, likely meaning they had incorrect arguments
+	 * 
+	 * @param sender	Issuer of the command
+	 * @param command	Command that was issued
+	 * @param label		Text that was typed
+	 * @param args		Arguments passed to the command
+	 */
+	public void invalidCommand(CommandSender sender, Command command, String label, String[] args) {
+		
+	}
+	
+	/**
+	 * Called whenever a sender does not have the appropriate permissions to execute a command
+	 * 
+	 * @param sender	Issuer of the command
+	 * @param command	Command that was issued
+	 * @param label		Text that was typed
+	 * @param args		Arguments passed to the command
+	 */
+	public void invalidPermissions(CommandSender sender, Command command, String label, String[] args) {
+		
+	}
+	
+	/**
+	 * Remove the first element of an array
+	 * 
+	 * @param array		original array
+	 * @return 			an array[N-1] with the first element removed from the original
+	 */
 	private String[] removeFirst(String[] array) {
 		String[] newArray = new String[array.length-1];
 		for (int i = 1; i < array.length; i++)
 			newArray[i-1] = array[i];
 		return newArray;
 	}
+	
+	
+	/**
+	 * Temporary barebones validation for a method
+	 * 
+	 * @param method		The method to be validated
+	 * @throws Exception
+	 */
+	public void validateMethod(Method method) throws Exception {
+		if (method.getParameterCount() != 4)
+			throw new Exception("Invalid Parameter Count for method " + method.toString() + ". Required 4");
+		if (method.getParameterTypes()[0] != CommandSender.class || method.getParameterTypes()[1] != Command.class || method.getParameterTypes()[2] != String.class || method.getParameterTypes()[3] != String[].class)
+			throw new Exception("Invalid Parameter Type for method " + method.toString() + ". Required types (CommandSender, Command, String, String[])");
+		this.method = method;
+	}
+	
+	
+	/**
+	 * Check if a command sender has permission to use the command
+	 * 
+	 * @param sender	The command sender that used the command
+	 * 
+	 * @return Whether the command sender has permission to use the command
+	 */
+	public boolean hasPermissions(CommandSender sender) {
+		boolean hasPermissions = false;
+		for (String perm : this.permissions) {
+			if (!sender.isPermissionSet(perm) && this.requiredPermissions.contains(perm))
+				return false;
+			if (sender.isPermissionSet(perm))
+				hasPermissions = true;
+		}
+		return hasPermissions;
+	}
+	
+	/**
+	 * Add a single permission
+	 * 
+	 * @param permission	The permission to be added to this command
+	 */
+	public void addPermission(String permission) {
+		this.permissions.add(permission);
+	}
+	
+	/**
+	 * Assigns the permission to the appropriate container
+	 *
+	 * @param permission	The name of the permission to be added
+	 * @param isRequired	Whether the permission is required for the command to execute
+	 */
+	public void addPermission(String permission, boolean isRequired) {
+		if (isRequired)
+			addRequiredPermission(permission);
+		else
+			addPermission(permission);
+	}
+	
+	/**
+	 * Add a single required permission to this command
+	 * 
+	 * @param permission	The required permission to be added
+	 */
+	public void addRequiredPermission(String permission) {
+		this.requiredPermissions.add(permission);
+	}
+	
+	/**
+	 * Adds permissions to the command
+	 * 
+	 * @param permissions	The permissions to be added
+	 */
+	public void addPermissions(Collection<String> permissions) {
+		for (String perm : permissions)
+			addPermission(perm);
+	}
+	
+	/**
+	 * Adds required permissions to the command
+	 * 
+	 * @param permissions	The required permissions to be added
+	 */
+	public void addRequiredPermissions(Collection<String> permissions) {
+		for (String perm : permissions)
+			addRequiredPermission(perm);
+	}
+	
+	/**
+	 * Kills the previous baseCommand as a safety check and sets a new one
+	 * 
+	 * @param baseCommand	new baseCommand
+	 */
+	public void setBaseCommand(BaseCommand baseCommand) {
+		if (this.baseCommand != null) this.baseCommand.kill();
+		this.baseCommand = baseCommand;
+		this.baseCommand.setExecutor(this);
+	}
+	
+	
+	/**
+	 * Adds a child command and updates permissions of that child
+	 * 
+	 * @param child	The command to be added as a children
+	 */
+	public void addChildCommand(CustomCommand child) {
+		this.children.add(child);
+		child.parent = this;
+	}
+	
 	
 	/**
 	 * Searches for a child command
@@ -210,9 +277,23 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	 */
 	public CustomCommand getChildrenByName(String name) {
 		for (CustomCommand cmd : this.children)
-			if (cmd.commandName.equals(name))
+			if (cmd.commandName.equals(name) || cmd.commandAliases.contains(name))
 				return cmd;
 		return null;
+	}
+	
+	
+	public void addAlias(String alias) {
+		this.commandAliases.add(alias);
+	}
+	
+	public void addAliases(Collection<String> aliases) {
+		for (String s : aliases)
+			addAlias(s);
+	}
+	
+	public List<String> getAliases() {
+		return this.commandAliases;
 	}
 	
 	
@@ -246,6 +327,10 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	
 	public Set<CustomCommand> getChildren() {
 		return this.children;
+	}
+	
+	public boolean hasMethod() {
+		return this.method != null;
 	}
 	
 	@Override

@@ -3,11 +3,6 @@ name: CustomCommand
 version: '0.1'
 description: A simple and easy to use Custom Commands API
 author: Alientation
-commands:
-  help:
-    description: Help command
-    aliases:
-    - helpme
 
 permissions:
   help:
@@ -21,4 +16,4 @@ permissions:
     default: op
   admin:
     description: become admin
-    default: false
+    default: true
