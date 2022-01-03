@@ -8,11 +8,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 
+import me.alientation.customcommand.event.CommandCallAttemptEvent;
+import me.alientation.customcommand.event.CommandCallSuccessEvent;
 import me.alientation.customcommand.exception.InvalidMethodException;
 
 /**
@@ -38,6 +41,7 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	
 	private BaseCommand baseCommand;
 	
+	private CustomCommandManager manager;
 	
 	private boolean showAliasesInTabCompletion = true;
 	
@@ -49,7 +53,7 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	 * @param permissions	Permissions the command has
 	 * @throws Exception 
 	 */
-	public CustomCommand(String id, String commandName, Collection<String> permissions) {
+	public CustomCommand(String id, String commandName, Collection<String> permissions, CustomCommandManager manager) {
 		this.commandID = id;
 		this.commandName = commandName;
 		this.permissions = new HashSet<>();
@@ -60,6 +64,7 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 			this.permissions.add(perm);
 		
 		this.commandAliases = new ArrayList<String>();
+		this.manager = manager;
 	}
 	
 	/**
@@ -71,25 +76,25 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	 * @param permissions	Permissions the command has
 	 * @throws Exception
 	 */
-	public CustomCommand(String id, String commandName, List<String> aliases, Collection<String> permissions) {
-		this(id,commandName,permissions);
+	public CustomCommand(String id, String commandName, List<String> aliases, Collection<String> permissions, CustomCommandManager manager) {
+		this(id,commandName,permissions,manager);
 		this.commandAliases= aliases;
 	}
 	
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-		if (!hasPermissions(sender)) {
-			invalidPermissions(sender,command,label,args);
-			return false;
-		}
+		CommandCallAttemptEvent commandCallAttemptEvent = new CommandCallAttemptEvent(this);
+		Bukkit.getPluginManager().callEvent(commandCallAttemptEvent);
+		if (commandCallAttemptEvent.isCancelled())
+			return !commandCallAttemptFail(sender,command,label,args);
+		if (!hasPermissions(sender))
+			return !invalidPermissions(sender,command,label,args);
 		
 		CustomCommand child = args.length > 0 ? getChildrenByName(args[0]) : null;
 		if (child != null)
 			return child.onCommand(sender, command, label, removeFirst(args));
-		if (this.commandMethod == null) {
-			invalidCommand(sender,command,label,args);
-			return false;
-		}
+		if (this.commandMethod == null)
+			return !invalidCommand(sender,command,label,args);
 		
 		/*
 		 * TODO: Add parameter flag annotations so that the user can greater customize the parameters that get accepted
@@ -107,7 +112,8 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 		}
 		
 		try {
-			return (boolean) this.commandMethod.invoke(this.commandMethodContainer,params);
+			Bukkit.getPluginManager().callEvent(new CommandCallSuccessEvent(this));
+			return (boolean) this.commandMethod.invoke(this.commandMethodContainer,params) && commandCallAttemptSuccess(sender,command,label,args);
 		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | SecurityException e) {
 			e.printStackTrace();
 		}
@@ -160,9 +166,11 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	 * @param command	Command that was issued
 	 * @param label		Text that was typed
 	 * @param args		Arguments passed to the command
+	 * 
+	 * @return			Returns whether the command should print out the usage description
 	 */
-	public void invalidCommand(CommandSender sender, Command command, String label, String[] args) {
-		
+	public boolean invalidCommand(CommandSender sender, Command command, String label, String[] args) {
+		return true;
 	}
 	
 	/**
@@ -172,9 +180,12 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	 * @param command	Command that was issued
 	 * @param label		Text that was typed
 	 * @param args		Arguments passed to the command
+	 * 
+	 * 
+	 * @return			Returns whether the command should print out the usage description
 	 */
-	public void invalidPermissions(CommandSender sender, Command command, String label, String[] args) {
-		
+	public boolean invalidPermissions(CommandSender sender, Command command, String label, String[] args) {
+		return true;
 	}
 	
 	/**
@@ -188,6 +199,36 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 		for (int i = 1; i < array.length; i++)
 			newArray[i-1] = array[i];
 		return newArray;
+	}
+	
+	/**
+	 * Called whenever a sender does not have the appropriate permissions to execute a command
+	 * 
+	 * @param sender	Issuer of the command
+	 * @param command	Command that was issued
+	 * @param label		Text that was typed
+	 * @param args		Arguments passed to the command
+	 * 
+	 * 
+	 * @return			Returns whether the command should print out the usage description
+	 */
+	public boolean commandCallAttemptFail(CommandSender sender, Command command, String label, String[] args) {
+		return true;
+	}
+	
+	/**
+	 * Called whenever a sender does not have the appropriate permissions to execute a command
+	 * 
+	 * @param sender	Issuer of the command
+	 * @param command	Command that was issued
+	 * @param label		Text that was typed
+	 * @param args		Arguments passed to the command
+	 * 
+	 * 
+	 * @return			Returns whether the command should print out the usage description
+	 */
+	public boolean commandCallAttemptSuccess(CommandSender sender, Command command, String label, String[] args) {
+		return false;
 	}
 	
 	
@@ -380,6 +421,10 @@ public class CustomCommand implements CommandExecutor, TabCompleter{
 	
 	public boolean hasMethod() {
 		return this.commandMethod != null;
+	}
+	
+	public CustomCommandManager getManager() {
+		return this.manager;
 	}
 	
 	@Override

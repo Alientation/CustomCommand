@@ -49,14 +49,14 @@ public class CustomCommandManager {
 		
 		CustomCommand temp1 = this.CUSTOM_COMMAND_MAP.get(cmdPath);
 		if (temp1 == null) {
-			temp1 = new CustomCommand(cmdPath,cmdPath,new ArrayList<String>());
+			temp1 = new CustomCommand(cmdPath,cmdPath,new ArrayList<String>(),this);
 			this.CUSTOM_COMMAND_MAP.put(temp1.getCommandID(), temp1);
 		}
 		CustomCommand temp2;
 		for (int i = 1; i < parts.length; i++) {
 			temp2 = this.CUSTOM_COMMAND_MAP.get(cmdPath + "." + parts[i]);
 			if (temp2 == null) {
-				temp2 = new CustomCommand(cmdPath + "." + parts[i],parts[i],new ArrayList<String>());
+				temp2 = new CustomCommand(cmdPath + "." + parts[i],parts[i],new ArrayList<String>(),this);
 				this.CUSTOM_COMMAND_MAP.put(temp2.getCommandID(), temp2);
 			}
 			cmdPath += "." + parts[i];

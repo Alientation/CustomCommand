@@ -100,7 +100,7 @@ public class CustomCommandAPI {
 	private CustomCommand getCommand(String commandID, String commandName) {
 		CustomCommand command = this.manager.getCustomCommandMap().get(commandID);
 		if (command == null) {
-			command = new CustomCommand(commandID,commandName,new ArrayList<String>());
+			command = new CustomCommand(commandID,commandName,new ArrayList<String>(),this.manager);
 			this.manager.mapCommand(command);
 		}
 		return command;
