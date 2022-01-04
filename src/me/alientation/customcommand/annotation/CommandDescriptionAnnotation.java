@@ -8,7 +8,6 @@ import java.lang.annotation.Target;
 
 @Retention(RUNTIME)
 @Target({ METHOD})
-public @interface TabAnnotation {
-	String commandID();
-	String commandName();
+public @interface CommandDescriptionAnnotation {
+	String value();
 }

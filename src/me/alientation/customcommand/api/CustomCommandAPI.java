@@ -10,17 +10,17 @@ import java.util.Map;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
 
-import me.alientation.customcommand.annotation.AliasesAnnotation;
+import me.alientation.customcommand.annotation.CommandAliasAnnotation;
 import me.alientation.customcommand.annotation.CommandAnnotation;
-import me.alientation.customcommand.annotation.DescriptionAnnotation;
+import me.alientation.customcommand.annotation.CommandDescriptionAnnotation;
 import me.alientation.customcommand.annotation.PermissionAnnotation;
-import me.alientation.customcommand.annotation.TabAnnotation;
-import me.alientation.customcommand.annotation.UsageAnnotation;
+import me.alientation.customcommand.annotation.CommandTabAnnotation;
+import me.alientation.customcommand.annotation.CommandUsageAnnotation;
 
 public class CustomCommandAPI {
 	
 	private Map<String,Method> methodMap;
-	private CustomCommandManager manager;
+	private CustomCommandManager commandManager;
 	
 	public CustomCommandAPI() {
 		this.methodMap = new HashMap<>();
@@ -32,17 +32,17 @@ public class CustomCommandAPI {
 	}
 	
 	public void registerManager(CustomCommandManager manager) {
-		this.manager = manager;
+		this.commandManager = manager;
 	}
 	
 	public void registerMethods() {
 		for (Method method : this.getClass().getDeclaredMethods()) {
 			if (method.isAnnotationPresent(CommandAnnotation.class)) {
 				CommandAnnotation commandAnnotation = method.getAnnotation(CommandAnnotation.class);
-				AliasesAnnotation[] aliasesAnnotations = method.getAnnotationsByType(AliasesAnnotation.class);
-				DescriptionAnnotation descriptionAnnotation = method.getAnnotation(DescriptionAnnotation.class);
+				CommandAliasAnnotation[] aliasesAnnotations = method.getAnnotationsByType(CommandAliasAnnotation.class);
+				CommandDescriptionAnnotation descriptionAnnotation = method.getAnnotation(CommandDescriptionAnnotation.class);
 				PermissionAnnotation[] permissionAnnotations = method.getAnnotationsByType(PermissionAnnotation.class);
-				UsageAnnotation usageAnnotation = method.getAnnotation(UsageAnnotation.class);
+				CommandUsageAnnotation usageAnnotation = method.getAnnotation(CommandUsageAnnotation.class);
 				
 				String commandName = commandAnnotation != null ? commandAnnotation.commandName() : null;
 				String commandID = commandAnnotation != null ? commandAnnotation.commandID() : null;
@@ -79,8 +79,8 @@ public class CustomCommandAPI {
 						bukkitCommandMap.setAccessible(true);
 						CommandMap commandMap = ((CommandMap) bukkitCommandMap.get(Bukkit.getServer()));
 						commandMap.register(command.getCommandName(), new BaseCommand(commandName,commandDescription, commandUsage, commandAliases, command));
-						if (this.manager.getPlugin().getCommand(commandName) != null) {
-							this.manager.getPlugin().getCommand(commandName).unregister(commandMap);
+						if (this.commandManager.getPlugin().getCommand(commandName) != null) {
+							this.commandManager.getPlugin().getCommand(commandName).unregister(commandMap);
 						}
 					} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
 						e.printStackTrace();
@@ -88,8 +88,8 @@ public class CustomCommandAPI {
 				}
 				
 				command.validateCommandMethod(method,this);
-			} else if (method.isAnnotationPresent(TabAnnotation.class)) {
-				TabAnnotation tabAnnotation = method.getAnnotation(TabAnnotation.class);
+			} else if (method.isAnnotationPresent(CommandTabAnnotation.class)) {
+				CommandTabAnnotation tabAnnotation = method.getAnnotation(CommandTabAnnotation.class);
 				this.methodMap.put("@tabAnnotation@" + tabAnnotation.commandID(), method);
 				CustomCommand command = this.getCommand(tabAnnotation.commandID(), tabAnnotation.commandName());
 				command.validateTabMethod(method, this);
@@ -98,10 +98,10 @@ public class CustomCommandAPI {
 	}
 	
 	private CustomCommand getCommand(String commandID, String commandName) {
-		CustomCommand command = this.manager.getCustomCommandMap().get(commandID);
+		CustomCommand command = this.commandManager.getCustomCommandMap().get(commandID);
 		if (command == null) {
-			command = new CustomCommand(commandID,commandName,new ArrayList<String>(),this.manager);
-			this.manager.mapCommand(command);
+			command = new CustomCommand(commandID,commandName,new ArrayList<String>(),this.commandManager);
+			this.commandManager.mapCommand(command);
 		}
 		return command;
 	}

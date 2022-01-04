@@ -9,13 +9,13 @@ import java.lang.annotation.Target;
 
 @Retention(RUNTIME)
 @Target({ METHOD})
-@Repeatable(AliasesAnnotations.class)
-public @interface AliasesAnnotation {
+@Repeatable(CommandAliasAnnotations.class)
+public @interface CommandAliasAnnotation {
 	String value();
 }
 
 @Retention(RUNTIME)
 @Target({METHOD})
-@interface AliasesAnnotations {
-	AliasesAnnotation[] value();
+@interface CommandAliasAnnotations {
+	CommandAliasAnnotation[] value();
 }

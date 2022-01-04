@@ -6,11 +6,11 @@ import java.util.List;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 
-import me.alientation.customcommand.annotation.AliasesAnnotation;
+import me.alientation.customcommand.annotation.CommandAliasAnnotation;
 import me.alientation.customcommand.annotation.CommandAnnotation;
-import me.alientation.customcommand.annotation.DescriptionAnnotation;
+import me.alientation.customcommand.annotation.CommandDescriptionAnnotation;
 import me.alientation.customcommand.annotation.PermissionAnnotation;
-import me.alientation.customcommand.annotation.TabAnnotation;
+import me.alientation.customcommand.annotation.CommandTabAnnotation;
 import me.alientation.customcommand.api.CustomCommandAPI;
 
 /**
@@ -20,8 +20,8 @@ import me.alientation.customcommand.api.CustomCommandAPI;
 public class TestCustomCommand extends CustomCommandAPI{
 	
 	@CommandAnnotation(commandID = "help", commandName = "help")
-	@DescriptionAnnotation(value = "Help Command")
-	@AliasesAnnotation(value = "helpme")
+	@CommandDescriptionAnnotation("Help Command")
+	@CommandAliasAnnotation("helpme")
 	@PermissionAnnotation(permission = "help", required = false)
 	public boolean helpCommand(CommandSender sender, Command cmd, String label, String[] args) {
 		sender.sendMessage("No help for you loser");
@@ -47,7 +47,7 @@ public class TestCustomCommand extends CustomCommandAPI{
 	
 	
 	@CommandAnnotation(commandID = "help.hello", commandName = "hello")
-	@AliasesAnnotation(value = "hi")
+	@CommandAliasAnnotation("hi")
 	@PermissionAnnotation(permission = "help",required=false)
 	public boolean helpHelloCommand(CommandSender sender, Command cmd, String label, String[] args) {
 		sender.sendMessage("hi");
@@ -55,7 +55,7 @@ public class TestCustomCommand extends CustomCommandAPI{
 	}
 	
 	
-	@TabAnnotation(commandID = "help.hello", commandName = "hello")
+	@CommandTabAnnotation(commandID = "help.hello", commandName = "hello")
 	public List<String> helpHelloTab(CommandSender sender, Command cmd, String label, String[] args) {
 		List<String> list = new ArrayList<String>();
 		list.add("SIRI");
